@@ -2,14 +2,22 @@
   "name": "file-structure-helper",
   "displayName": "File Structure Helper",
   "description": "An extension that help you easily copy the file structure of current project. It also enables you to search file using (part of) filename.",
+  "publisher": "UsefulTools",
   "version": "0.0.1",
+  "homepage": "https://github.com/UVCofficial/FileStructureHelper#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/UVCofficial/FileStructureHelper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/UVCofficial/FileStructureHelper/issues"
+  },
   "engines": {
     "vscode": "^1.102.0"
   },
   "categories": [
-    "Other",
-    "File System",
-    "Search"
+    "Snippets",
+    "Other"
   ],
   "keywords": [
     "file structure",
