@@ -75,24 +75,23 @@ class FileStructureSidebarProvider implements vscode.WebviewViewProvider {
                 vscode.window.showTextDocument(uri);
             }
             if (msg.type === 'copyTree') {
-                // 复用 generateFileTree 逻辑
-                await vscode.commands.executeCommand('file-structure-helper.generateFileTree');
-            }
+				// 将从前端接收到的 respectGitignore 参数传递给命令
+				await vscode.commands.executeCommand(
+					'file-structure-helper.generateFileTree',
+					msg.respectGitignore  // 接收控制指令：是否接受.gitignore
+            );
+        }
         });
     }
 
-    getHtmlForWebview(webview: vscode.Webview): string {
+	getHtmlForWebview(webview: vscode.Webview): string {
 		return /* html */ `
 			<!DOCTYPE html>
 			<html lang="zh-CN">
 			<head>
 				<meta charset="UTF-8">
 				<style>
-					html, body {
-						height: 100%;
-						padding: 0;
-						margin: 0;
-					}
+					/* ... (保留 body, .container, input, button 等原有样式) ... */
 					body {
 						height: 100vh;
 						background: var(--vscode-sideBar-background);
@@ -100,6 +99,8 @@ class FileStructureSidebarProvider implements vscode.WebviewViewProvider {
 						font-family: var(--vscode-font-family);
 						display: flex;
 						flex-direction: column;
+						padding: 8px;
+						box-sizing: border-box;
 					}
 					.container {
 						display: flex;
@@ -109,20 +110,12 @@ class FileStructureSidebarProvider implements vscode.WebviewViewProvider {
 					}
 					.search-bar {
 						display: flex;
-						align-items: center;
-						padding: 8px;
-						gap: 8px;
-					}
-					input[type="text"], button {
-						height: 32px;
-						font-size: 14px;
-						border-radius: 4px;
-						box-sizing: border-box;
-						line-height: 32px;
+						padding-bottom: 8px;
 					}
 					input[type="text"] {
 						flex: 1;
 						padding: 0 8px;
+						height: 32px;
 						border: 1px solid var(--vscode-input-border, var(--vscode-focusBorder));
 						background: var(--vscode-input-background);
 						color: var(--vscode-input-foreground);
@@ -131,15 +124,31 @@ class FileStructureSidebarProvider implements vscode.WebviewViewProvider {
 					input[type="text"]:focus {
 						border-color: var(--vscode-focusBorder);
 					}
+					.copy-section {
+						display: flex;
+						align-items: center;
+						gap: 12px;
+						padding-bottom: 8px;
+						border-bottom: 1px solid var(--vscode-editorGroup-border);
+					}
+					.checkbox-label {
+						display: flex;
+						align-items: center;
+						cursor: pointer;
+						font-size: 13px;
+						user-select: none;
+					}
+					input[type="checkbox"] {
+						margin-right: 6px;
+					}
 					button {
 						background: var(--vscode-button-background);
 						color: var(--vscode-button-foreground);
 						border: none;
-						padding: 0 16px;
+						padding: 6px 12px;
 						cursor: pointer;
 						transition: background 0.2s;
-						min-width: 110px;
-						white-space: nowrap;
+						border-radius: 4px;
 					}
 					button:hover {
 						background: var(--vscode-button-hoverBackground);
@@ -147,33 +156,31 @@ class FileStructureSidebarProvider implements vscode.WebviewViewProvider {
 					.result-list {
 						flex: 1;
 						overflow-y: auto;
-						margin: 0;
-						padding: 0 0 8px 0;
+						margin-top: 8px;
 					}
-					ul {
-						list-style: none;
-						margin: 0;
-						padding: 0;
-					}
+					ul { list-style: none; margin: 0; padding: 0; }
 					li {
-						padding: 6px 12px;
+						padding: 4px 8px;
 						cursor: pointer;
 						border-radius: 3px;
-						transition: background 0.15s;
 						white-space: nowrap;
 						overflow: hidden;
 						text-overflow: ellipsis;
 					}
-					li:hover {
-						background: var(--vscode-list-hoverBackground);
-					}
+					li:hover { background: var(--vscode-list-hoverBackground); }
 				</style>
 			</head>
 			<body>
 				<div class="container">
+					<div class="copy-section">
+						<button id="copyBtn">Copy Project Structure</button>
+						<label class="checkbox-label">
+							<input type="checkbox" id="gitignoreCheck" checked />
+							Respect .gitignore
+						</label>
+					</div>
 					<div class="search-bar">
-						<input id="searchInput" type="text" placeholder="搜索文件..." />
-						<button id="copyBtn">Copy Structure</button>
+						<input id="searchInput" type="text" placeholder="Search files..." />
 					</div>
 					<div class="result-list">
 						<ul id="resultList"></ul>
@@ -182,17 +189,22 @@ class FileStructureSidebarProvider implements vscode.WebviewViewProvider {
 				<script>
 					const vscode = acquireVsCodeApi();
 					const input = document.getElementById('searchInput');
-					const btn = document.getElementById('copyBtn');
+					const copyBtn = document.getElementById('copyBtn');
+					const gitignoreCheck = document.getElementById('gitignoreCheck');
 					const list = document.getElementById('resultList');
-	
+
 					input.addEventListener('input', () => {
 						vscode.postMessage({ type: 'search', value: input.value });
 					});
-	
-					btn.addEventListener('click', () => {
-						vscode.postMessage({ type: 'copyTree' });
+
+					copyBtn.addEventListener('click', () => {
+						// 发送消息时，附带复选框的状态
+						vscode.postMessage({
+							type: 'copyTree',
+							respectGitignore: gitignoreCheck.checked
+						});
 					});
-	
+
 					window.addEventListener('message', event => {
 						const msg = event.data;
 						if (msg.type === 'searchResult') {
